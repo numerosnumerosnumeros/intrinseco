@@ -301,6 +301,20 @@ if (process.env.NODE_ENV !== 'development') {
 			label: app.name,
 			submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'quit' }],
 		},
+		{
+			label: 'Edit',
+			submenu: [
+				{ role: 'undo' },
+				{ role: 'redo' },
+				{ type: 'separator' },
+				{ role: 'cut' },
+				{ role: 'copy' },
+				{ role: 'paste' },
+				{ role: 'delete' },
+				{ type: 'separator' },
+				{ role: 'selectAll' },
+			],
+		},
 	];
 	const menu = Menu.buildFromTemplate(template);
 	Menu.setApplicationMenu(menu);

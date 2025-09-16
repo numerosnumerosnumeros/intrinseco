@@ -35,7 +35,7 @@ body::before {
 	z-index: -20;
 	background: radial-gradient(
 			ellipse 100% 80% at 25% 35%,
-			rgba(255, 76, 168, 0.4) 0%,
+			rgba(65, 102, 245, 0.3) 0%,
 			rgba(244, 114, 182, 0) 85%
 		),
 		radial-gradient(

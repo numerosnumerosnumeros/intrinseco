@@ -199,6 +199,9 @@ export function cleanChunk(target, chunk, language, period) {
 	// ***
 	// ****
 	// ***** DATES
+	if (target == 'balance') {
+		console.log('1: ', processedText);
+	}
 	if (
 		period.substring(period.length - 2) === '-Y' ||
 		period.substring(period.length - 2) === 'S2' ||
@@ -245,9 +248,32 @@ export function cleanChunk(target, chunk, language, period) {
 				language
 			);
 
+			const span = modifiedText.substring(currPos, currPos + skipLen);
+
+			// Does the skipped span contain €m / $m / £m (with or without parentheses)?
+			const currencyMatch = span.match(/[€$£]\s*[mM]|\([€$£]\s*[mM]\)/);
+
 			if (foundJanuary) {
-				// Replace with spaces
+				// First, replace with spaces (preserve alignment)
 				januaryRemoved += ' '.repeat(skipLen);
+
+				// If we detected a currency marker, overlay it back
+				if (currencyMatch) {
+					// Remove trailing spaces we just added
+					januaryRemoved = januaryRemoved.slice(0, -skipLen);
+
+					// Rebuild: spaces for everything, except put back the exact marker
+					const before = span
+						.substring(0, currencyMatch.index)
+						.replace(/./g, ' ');
+					const marker = currencyMatch[0];
+					const after = span
+						.substring(currencyMatch.index + marker.length)
+						.replace(/./g, ' ');
+
+					januaryRemoved += before + marker + after;
+				}
+
 				currPos += skipLen;
 			} else {
 				januaryRemoved += modifiedText[currPos];
@@ -256,6 +282,10 @@ export function cleanChunk(target, chunk, language, period) {
 		}
 
 		processedText = januaryRemoved;
+	}
+
+	if (target == 'balance') {
+		console.log('2: ', processedText);
 	}
 
 	// *
@@ -505,7 +535,17 @@ export function cleanChunk(target, chunk, language, period) {
 			processedLine = processedLine.replace(/,/g, '');
 		}
 
-		// Remove €, $, £
+		// Replace unit markers like "(€m)" or "(€k)" before stripping symbols
+		processedLine = processedLine.replace(
+			/\( ?[€$£]\s*[mM]\s*\)/gi,
+			'(in millions)'
+		);
+		processedLine = processedLine.replace(
+			/\( ?[€$£]\s*[kK]\s*\)/gi,
+			'(in thousands)'
+		);
+
+		// Remove remaining currency symbols
 		processedLine = processedLine.replace(/[€$£]/g, '');
 
 		// Only add lines that have fewer than 180 characters
@@ -839,6 +879,19 @@ function hasJanuary(text, language) {
 // ***** INTEGERS & CURRENCIES HELPERS
 function checkCurrencyMillionsOrUds(text, position) {
 	const remaining = text.slice(position);
+
+	// Detect "(€m)", "€m", "$m", "£m" patterns (case-insensitive, optional parentheses/space)
+	const millionsMatch = remaining.match(/^\(?\s*[€$£]\s*[mM]\s*\)?/);
+	if (millionsMatch) {
+		return { found: true, length: millionsMatch[0].length, type: 'millions' };
+	}
+
+	// Detect "(€k)", "€k", "$k", "£k" patterns for thousands
+	const thousandsMatch = remaining.match(/^\(?\s*[€$£]\s*[kK]\s*\)?/);
+	if (thousandsMatch) {
+		return { found: true, length: thousandsMatch[0].length, type: 'thousands' };
+	}
+
 	const currencySymbols = ['$', '£', '€'];
 	const isMillionMarker = (c) => c === 'm' || c === 'M';
 
